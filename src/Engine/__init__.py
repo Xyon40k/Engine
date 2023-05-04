@@ -1,14 +1,20 @@
 import pygame
 from pygame import *
 from math import sin, cos, radians, sqrt
+from typing import Callable
 
 INIT = False
 OBS = []
 PLANEZ = 0
 WIDTH = 0
 HEIGHT = 0
+DEFAULT_DOT_WIDTH = 0
+DEFAULT_LINE_WIDTH = 0
+DEFAULT_DOT_COLOR = ""
+DEFAULT_LINE_COLOR = ""
+START_HIDDEN = None
 
-
+mq = {}
 objs = []
 
 EMPTY_MATRIX = [
@@ -25,7 +31,7 @@ BASE_MATRIX = [
 
 
 
-def run(baseactions=[], keyactions={}, bg="white", basefps=60, surf=None, drawhidden=False):
+def run(baseactions: list[Callable] =[], keyactions: dict[int, Callable] ={}, bg="white", basefps=60, surf: pygame.Surface =None, drawhidden=START_HIDDEN):
     if surf == None:
         surf = pygame.display.set_mode((WIDTH, HEIGHT))
 
@@ -75,9 +81,14 @@ def drawall(surf: pygame.Surface, drawhidden=False):
                 obj.draw(surf)
 
 
+# TODO: maybe broken, maybe under
 def getrotation(degrees: float, axis: str) -> list[list[float]]:
     trsf = []
     axis = axis.lower()
+    
+    try:
+        return mq[axis+str(degrees)]
+    except: pass
     
     if axis == "x":
         trsf = [
@@ -100,35 +111,48 @@ def getrotation(degrees: float, axis: str) -> list[list[float]]:
     else:
         raise ValueError("Inserted axis is not valid")
     
+    mq[axis+str(degrees)] = trsf
+    
     return trsf
 
 
+# TODO: this is broken, fix
 def combinetransformation(trsf: list[list[float]], *trsfs: list[list[float]]) -> list[list[float]]:
-    temp = EMPTY_MATRIX
+    try:
+        return mq[hash([trsfs, trsf])]
+    except: pass
+    
+
     for tr in trsfs:
         for i in range(3):
             for j in range(3):
                 for k in range(3):
-                    temp[i][j] += tr[i][k]*trsf[k][j]
-        trsf = temp
+                    temp[i][j] += tr[i][k]*res[k][j]
+        res = temp
         temp = EMPTY_MATRIX
-    return trsf
+        
+    mq[hash([trsfs, trsf])] = res
+    return res
 
 
-def init(size=(600,600), obs=[0,0,800], planez=500):
-    global INIT, OBS, PLANEZ, WIDTH, HEIGHT
+def init(size=(600,600), obs=[0,0,800], planez=500, defaultDotWidth=2, defaultLineWidth=1, defaultDotColor="black", defaultLineColor="black", startHidden=False):
+    global INIT, OBS, PLANEZ, WIDTH, HEIGHT, DEFAULT_DOT_WIDTH, DEFAULT_LINE_WIDTH, DEFAULT_DOT_COLOR, DEFAULT_LINE_COLOR, START_HIDDEN
     INIT = True
     OBS = obs
     PLANEZ = planez
     WIDTH = size[0]
     HEIGHT = size[1]
+    DEFAULT_DOT_WIDTH = defaultDotWidth
+    DEFAULT_LINE_WIDTH = defaultLineWidth
+    DEFAULT_DOT_COLOR = defaultDotColor
+    DEFAULT_LINE_COLOR = defaultLineColor
+    START_HIDDEN = startHidden
     pygame.init()
 
 
 def setobs(vector: list[float]):
     global OBS
-    for i in range(3):
-        OBS[i] = vector[i]
+    OBS = [i for i in vector]
         
         
 def getobs() -> list[float]:
@@ -459,19 +483,19 @@ class Sphere(Polyhedron):
             
             
 class Cube(Polyhedron):
-    def __init__(self, center: list[float], size: float, dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, center: list[float], sidelength: float, dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
         self.dots = [
-            RelativeDot(center,(size/2,size/2,size/2)),
-            RelativeDot(center,(-size/2,size/2,size/2)),
-            RelativeDot(center,(size/2,-size/2,size/2)),
-            RelativeDot(center,(-size/2,-size/2,size/2)),
-            RelativeDot(center,(size/2,size/2,-size/2)),
-            RelativeDot(center,(-size/2,size/2,-size/2)),
-            RelativeDot(center,(size/2,-size/2,-size/2)),
-            RelativeDot(center,(-size/2,-size/2,-size/2))
+            RelativeDot(center,(sidelength/2,sidelength/2,sidelength/2)),
+            RelativeDot(center,(-sidelength/2,sidelength/2,sidelength/2)),
+            RelativeDot(center,(sidelength/2,-sidelength/2,sidelength/2)),
+            RelativeDot(center,(-sidelength/2,-sidelength/2,sidelength/2)),
+            RelativeDot(center,(sidelength/2,sidelength/2,-sidelength/2)),
+            RelativeDot(center,(-sidelength/2,sidelength/2,-sidelength/2)),
+            RelativeDot(center,(sidelength/2,-sidelength/2,-sidelength/2)),
+            RelativeDot(center,(-sidelength/2,-sidelength/2,-sidelength/2))
         ]
         
         self.lines = [
