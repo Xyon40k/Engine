@@ -81,7 +81,6 @@ def drawall(surf: pygame.Surface, drawhidden=False):
                 obj.draw(surf)
 
 
-# TODO: maybe broken, maybe under
 def getrotation(degrees: float, axis: str) -> list[list[float]]:
     trsf = []
     axis = axis.lower()
@@ -116,25 +115,28 @@ def getrotation(degrees: float, axis: str) -> list[list[float]]:
     return trsf
 
 
-# TODO: this is broken, fix
 def combinetransformation(trsf: list[list[float]], *trsfs: list[list[float]]) -> list[list[float]]:
     try:
-        return mq[hash([trsfs, trsf])]
+        return mq[hash(trsf.__str__()+trsfs.__str__())]
     except: pass
     
+    temp = EMPTY_MATRIX
+    res = trsf
+    r = range(3)
 
     for tr in trsfs:
-        for i in range(3):
-            for j in range(3):
-                for k in range(3):
+        for i in r:
+            for j in r:
+                for k in r:
                     temp[i][j] += tr[i][k]*res[k][j]
         res = temp
         temp = EMPTY_MATRIX
         
-    mq[hash([trsfs, trsf])] = res
+    mq[hash(trsf.__str__()+trsfs.__str__())] = res
     return res
 
 
+# TODO: fix global
 def init(size=(600,600), obs=[0,0,800], planez=500, defaultDotWidth=2, defaultLineWidth=1, defaultDotColor="black", defaultLineColor="black", startHidden=False):
     global INIT, OBS, PLANEZ, WIDTH, HEIGHT, DEFAULT_DOT_WIDTH, DEFAULT_LINE_WIDTH, DEFAULT_DOT_COLOR, DEFAULT_LINE_COLOR, START_HIDDEN
     INIT = True
@@ -184,7 +186,7 @@ def topygame(vector: list[float]) -> list[float]:
 
 
 class Dot():
-    def __init__(self, pos: list[float], color="black", width=2, hidden=False):
+    def __init__(self, pos: list[float], color=DEFAULT_DOT_COLOR, width=DEFAULT_DOT_WIDTH, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
@@ -225,7 +227,7 @@ class Dot():
         
         
 class RelativeDot(Dot):
-    def __init__(self, center: list[float], vector: list[float], color="black", width=2, hidden=False):
+    def __init__(self, center: list[float], vector: list[float], color=DEFAULT_DOT_COLOR, width=DEFAULT_DOT_WIDTH, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
@@ -261,7 +263,7 @@ class RelativeDot(Dot):
 
 
 class Line():
-    def __init__(self, dot1: Dot, dot2: Dot, width=1, color="black", hidden=False):
+    def __init__(self, dot1: Dot, dot2: Dot, width=DEFAULT_LINE_WIDTH, color=DEFAULT_LINE_COLOR, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         objs.append(self)
@@ -284,7 +286,7 @@ class Line():
         
         
 class Polyhedron():
-    def __init__(self, reldots: list[RelativeDot], lines: list[Line], center: list[float], dotcolor="", linecolor="", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, reldots: list[RelativeDot], lines: list[Line], center: list[float], dotcolor="", linecolor="", dotwidth=0, linewidth=0, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
@@ -297,25 +299,41 @@ class Polyhedron():
         self.linewidth = linewidth
         self.hidden = hidden
         
+        def dc(i):
+            self.dots[i].color = self.dotcolor
+        def dw(i):
+            self.dots[i].width = self.dotwidth
+        def lc(i):
+            self.lines[i].color = self.linecolor
+        def lw(i):
+            self.lines[i].width = self.linewidth
+        def hidd(i):
+            self.dots[i].hidden = self.hidden
+        def hidl(i):
+            self.lines[i].hidden = self.hidden
+
+        arrd = []
+        arrl = []
+
         if dotcolor:
-            for i in range(len(self.dots)):
-                self.dots[i].color = self.dotcolor
-                self.dots[i].width = self.dotwidth
-                
+            arrd.append(dc)
+        if dotwidth:
+            arrd.append(dw)
         if linecolor:
-            for i in range(len(self.lines)):
-                self.lines[i].color = self.linecolor
-                self.lines[i].width = self.linewidth
-                
+            arrl.append(lc)
+        if linewidth:
+            arrl.append(lw)
         if hidden:
-            for i in range(len(self.dots)):
-                self.dots[i].hidden = self.hidden
-                
-            for i in range(len(self.lines)):
-                self.lines[i].hidden = self.hidden
-                
-                
-        
+            arrd.append(hidd)
+            arrl.append(hidl)
+
+        for i in range(len(self.dots)):
+            for f in arrd:
+                f(i)
+        for i in range(len(self.lines)):
+            for f in arrl:
+                f(i)
+
     def setcenter(self, center: list[float]):
         self.center = center
         
@@ -392,7 +410,7 @@ class Polyhedron():
 
 # TODO: possibly add analogic sphere
 class Sphere(Polyhedron):
-    def __init__(self, center: list[float], r: float, dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, center: list[float], r: float, dotcolor="", linecolor="", dotwidth=0, linewidth=0, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
 
@@ -483,7 +501,7 @@ class Sphere(Polyhedron):
             
             
 class Cube(Polyhedron):
-    def __init__(self, center: list[float], sidelength: float, dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, center: list[float], sidelength: float, dotcolor="", linecolor="", dotwidth=0, linewidth=0, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
@@ -519,7 +537,7 @@ class Cube(Polyhedron):
 
 # TODO: make this actually regular
 class Tetrahedron(Polyhedron):
-    def __init__(self, center: list[float], size: float, dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, center: list[float], size: float, dotcolor="", linecolor="", dotwidth=0, linewidth=0, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
@@ -544,7 +562,7 @@ class Tetrahedron(Polyhedron):
 
 
 class Cylinder(Polyhedron):
-    def __init__(self, center: list[float], r: float, height: float, dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, center: list[float], r: float, height: float, dotcolor="", linecolor="", dotwidth=0, linewidth=0, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
         
@@ -621,7 +639,7 @@ class Cylinder(Polyhedron):
 
 
 class Parallelopiped(Polyhedron):
-    def __init__(self, center: list[float], sizes: list[float], dotcolor="black", linecolor="black", dotwidth=2, linewidth=1, hidden=False):
+    def __init__(self, center: list[float], sizes: list[float], dotcolor="", linecolor="", dotwidth=0, linewidth=0, hidden=False):
         if not INIT:
             raise PermissionError("Module was not initialized correctly")
 
