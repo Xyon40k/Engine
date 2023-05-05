@@ -135,7 +135,6 @@ def combinetransformation(trsf: list[list[float]], *trsfs: list[list[float]]) ->
     mq[hash(trsf.__str__()+trsfs.__str__())] = res
     return res
 
-
 # TODO: fix global
 def init(size=(600,600), obs=[0,0,800], planez=500, defaultDotWidth=2, defaultLineWidth=1, defaultDotColor="black", defaultLineColor="black", startHidden=False):
     global INIT, OBS, PLANEZ, WIDTH, HEIGHT, DEFAULT_DOT_WIDTH, DEFAULT_LINE_WIDTH, DEFAULT_DOT_COLOR, DEFAULT_LINE_COLOR, START_HIDDEN
